@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Vue formulaire avec les nouveaux champs API 100p -->
+    <record id="view_product_template_form_inherit_api_100p" model="ir.ui.view">
+        <field name="name">product.template.form.inherit.api.100p</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_form_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//header" position="inside">
+                <field name="barcode" invisible="1"/>
+                <field name="api_item_no" invisible="1"/>
+                <button name="action_update_from_api_100p"
+                        type="object"
+                        string="Update from API 100p"
+                        class="oe_highlight"
+                        invisible="hundred_p_article_reference == False"
+                        groups="base.group_user"
+                        help="Update product information from API 100p.xcs.be"/>
+            </xpath>
+
+            <xpath expr="//notebook" position="inside">
+                <page string="API 100p Information" name="api_100p_info">
+                    <group>
+                        <field name="hundred_p_article_reference"/>
+                    </group>
+                    <group>
+                        <group string="Article Information">
+                            <field name="api_item_no"/>
+                            <field name="api_description"/>
+                            <field name="api_cad_iso"/>
+                            <field name="api_blocked"/>
+                        </group>
+                        <group string="Pricing Information">
+                            <field name="api_dealer_price"/>
+                            <field name="api_date_new_price"/>
+                            <field name="api_previous_dealer_price"/>
+                            <field name="api_previous_date_new_price"/>
+                        </group>
+                    </group>
+                    <group>
+                        <group string="Physical Information">
+                            <field name="api_net_weight"/>
+                            <field name="api_gross_weight"/>
+                            <field name="api_energy_class"/>
+                            <field name="api_tariff_no"/>
+                        </group>
+                        <group string="Additional Information">
+                            <field name="api_recupel"/>
+                        </group>
+                    </group>
+                    <group>
+                        <group string="Sync Information">
+                            <field name="api_last_sync"/>
+                            <field name="api_sync_status"/>
+                            <field name="api_sync_message" invisible="api_sync_status != 'error'"/>
+                        </group>
+                    </group>
+                </page>
+            </xpath>
+
+            <xpath expr="//field[@name='barcode']" position="after">
+                <field name="api_item_no" string="API Item No."/>
+            </xpath>
+
+            <xpath expr="//field[@name='active']" position="after">
+                <field name="api_sync_status" widget="badge" 
+                       decoration-success="api_sync_status == 'success'"
+                       decoration-danger="api_sync_status == 'error'"
+                       decoration-muted="api_sync_status == 'never'"/>
+                <field name="api_blocked" widget="boolean_toggle" 
+                       invisible="api_blocked == False"
+                       decoration-danger="api_blocked == True"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_product_template_tree_inherit_api_100p" model="ir.ui.view">
+        <field name="name">product.template.tree.inherit.api.100p</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_tree_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='barcode']" position="after">
+                <field name="api_item_no" optional="hide"/>
+                <field name="api_dealer_price" optional="hide"/>
+                <field name="api_sync_status" widget="badge" optional="show"
+                       decoration-success="api_sync_status == 'success'"
+                       decoration-danger="api_sync_status == 'error'"
+                       decoration-muted="api_sync_status == 'never'"/>
+                <field name="api_last_sync" optional="hide"/>
+                <field name="api_blocked" widget="boolean_toggle" optional="hide"
+                       decoration-danger="api_blocked == True"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="action_update_all_products_from_api" model="ir.actions.server">
+        <field name="name">Update All Products from API 100p</field>
+        <field name="model_id" ref="product.model_product_template"/>
+        <field name="binding_model_id" ref="product.model_product_template"/>
+        <field name="binding_view_types">list</field>
+        <field name="state">code</field>
+        <field name="code">
+            for record in records:
+                try:
+                    record.action_update_from_api_100p()
+                except Exception as e:
+                    pass
+        </field>
+    </record>
+
+
+    <record id="view_product_template_search_inherit_api_100p" model="ir.ui.view">
+        <field name="name">product.template.search.inherit.api.100p</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_search_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//filter[@name='inactive']" position="after">
+                <separator/>
+                <filter string="API Sync Success" name="api_sync_success"
+                        domain="[('api_sync_status', '=', 'success')]"/>
+                <filter string="API Sync Error" name="api_sync_error"
+                        domain="[('api_sync_status', '=', 'error')]"/>
+                <filter string="Never Synced" name="api_never_synced"
+                        domain="[('api_sync_status', '=', 'never')]"/>
+                <filter string="API Blocked Articles" name="api_blocked"
+                        domain="[('api_blocked', '=', True)]"/>
+            </xpath>
+            <xpath expr="//group" position="inside">
+                <filter string="API Sync Status" name="group_api_sync_status"
+                        context="{'group_by': 'api_sync_status'}"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>
