@@ -30,7 +30,7 @@
         - F_54: Blocked Status
     """,
     "author": "Lapinski Sebastian",
-    "depends": ["base", "product", "stock"],
+    "depends": ["base", "product", "stock", "purchase", "contacts"],
     "external_dependencies": {
         "python": ["requests"]
     },

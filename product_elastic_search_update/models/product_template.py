@@ -122,7 +122,6 @@ class ProductTemplate(models.Model):
                     values[odoo_field] = bool(api_value) if api_value else False
                     
                 else:
-                    # Champs texte
                     values[odoo_field] = str(api_value) if api_value else ''
 
         values.update({
@@ -134,13 +133,15 @@ class ProductTemplate(models.Model):
         # Optionnel: mettre à jour aussi certains champs standard d'Odoo
         if 'api_description' in values and values['api_description']:
             values['name'] = values['api_description']
-        
-        if 'api_dealer_price' in values and values['api_dealer_price']:
-            values['list_price'] = values['api_dealer_price']
             
         if 'api_net_weight' in values and values['api_net_weight']:
             values['weight'] = values['api_net_weight']
-
+        if api_data.get('F_80004'):
+            values['api_dealer_price'] = float(api_data.get('F_80004').replace(',', '.')) if api_data.get('F_80004') else 0.0
+        if api_data.get('F_80008'):
+            values['api_previous_dealer_price']  = float(api_data.get('F_80008').replace(',', '.')) if api_data.get('F_80008') else 0.0
+        if 'api_dealer_price' in values and values['api_dealer_price']:
+            values['list_price'] = values['api_dealer_price']
         # Ajouter la catégorie "100 % Light" pour les produits synchronisés depuis l'API
         category_100p_light = self.env.ref('product_elastic_search_update.product_category_100p_light', raise_if_not_found=False)
         if category_100p_light:
@@ -160,8 +161,13 @@ class ProductTemplate(models.Model):
 
                 values = record._update_from_api_data(api_data)
                 record.write(values)
-                
-                _logger.info(f"Successfully updated product {record.name} from API 100p")
+                hundredp_vendor = self.env['res.partner'].search([("name", "ilike", "100% LIGHT BVBA")], limit=1)
+                if hundredp_vendor:
+                    self.env['product.supplierinfo'].create({
+                        "partner_id": hundredp_vendor.id,
+                        "product_tmpl_id": record.id,
+                        "price": values['api_dealer_price'],
+                    })
                 
             except Exception as e:
                 _logger.error(f"Failed to update product {record.name}: {str(e)}")
