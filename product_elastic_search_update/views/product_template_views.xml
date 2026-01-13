@@ -13,7 +13,7 @@
                         type="object"
                         string="Update from API 100p"
                         class="oe_highlight"
-                        invisible="hundred_p_article_reference == False"
+                        invisible="x_supplier_ref == False"
                         groups="base.group_user"
                         help="Update product information from API 100p.xcs.be"/>
             </xpath>
