@@ -32,6 +32,7 @@ class ProductTemplate(models.Model):
         ('never', 'Never Synced')
     ], string='API Sync Status', default='never')
     api_sync_message = fields.Text(string='Sync Message', help='Last sync message or error')
+    x_supplier_ref = fields.Char()
 
     @api.model
     def _get_api_config(self):
@@ -152,7 +153,8 @@ class ProductTemplate(models.Model):
     def action_update_from_api_100p(self):
         for record in self:
             try:
-                article_number = record.hundred_p_article_reference or record.api_item_no
+                article_number = record.x_supplier_ref or record.hundred_p_article_reference or record.api_item_no
+                record.write({'x_supplier_ref': article_number})
                 
                 if not article_number:
                     raise UserError(_("No barcode or item number found for product '%s'") % record.name)
