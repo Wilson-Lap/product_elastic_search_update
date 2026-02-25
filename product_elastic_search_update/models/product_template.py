@@ -15,8 +15,10 @@ class ProductTemplate(models.Model):
     api_cad_iso = fields.Char(string='CAD ISO (F_50001)', help='CAD ISO from API')
     api_dealer_price = fields.Float(string='Dealer Price (F_80004)', help='Current dealer price from API')
     api_date_new_price = fields.Datetime(string='Date New Price (F_80006)', help='Date of new price from API')
-    api_previous_dealer_price = fields.Float(string='Previous Dealer Price (F_80008)', help='Previous dealer price from API')
-    api_previous_date_new_price = fields.Datetime(string='Previous Date New Price (F_80010)', help='Previous date new price from API')
+    api_previous_dealer_price = fields.Float(string='Previous Dealer Price (F_80008)',
+                                             help='Previous dealer price from API')
+    api_previous_date_new_price = fields.Datetime(string='Previous Date New Price (F_80010)',
+                                                  help='Previous date new price from API')
     api_recupel = fields.Char(string='Recupel 1 (C_50000)', help='Recupel information from API')
     api_net_weight = fields.Float(string='Net Weight (F_42)', help='Net weight from API')
     api_gross_weight = fields.Float(string='Gross Weight (F_41)', help='Gross weight from API')
@@ -46,29 +48,29 @@ class ProductTemplate(models.Model):
     def _call_api_100p(self, article_number):
 
         config = self._get_api_config()
-        
+
         if not config['bearer_token']:
             raise UserError(_("Bearer token not configured. Please set 'api_100p.bearer_token' system parameter."))
-        
+
         url = f"{config['base_url']}/articles/{article_number}"
         headers = {
             'Authorization': f'Bearer {config["bearer_token"]}',
             'Content-Type': 'application/json',
             'Accept': 'application/json'
         }
-        
+
         try:
             _logger.info(f"Calling API 100p for article: {article_number}")
             response = requests.get(url, headers=headers, timeout=30)
             response.raise_for_status()
-            
+
             data = response.json()
-            
+
             if data.get('status') == 'success' and 'data' in data:
                 return data['data']
             else:
                 raise UserError(_("API returned unsuccessful status: %s") % data.get('message', 'Unknown error'))
-                
+
         except requests.exceptions.RequestException as e:
             _logger.error(f"API call failed for article {article_number}: {str(e)}")
             raise UserError(_("Failed to connect to API: %s") % str(e))
@@ -79,7 +81,7 @@ class ProductTemplate(models.Model):
     def _update_from_api_data(self, api_data):
         field_mapping = {
             'F_1': 'api_item_no',
-            'F_3': 'api_description', 
+            'F_3': 'api_description',
             'F_50001': 'api_cad_iso',
             'F_80004': 'api_dealer_price',
             'F_80006': 'api_date_new_price',
@@ -92,19 +94,20 @@ class ProductTemplate(models.Model):
             'F_47': 'api_tariff_no',
             'F_54': 'api_blocked'
         }
-        
+
         values = {}
-        
+
         for api_field, odoo_field in field_mapping.items():
             if api_field in api_data:
                 api_value = api_data[api_field]
 
-                if odoo_field in ['api_dealer_price', 'api_previous_dealer_price', 'api_net_weight', 'api_gross_weight']:
+                if odoo_field in ['api_dealer_price', 'api_previous_dealer_price', 'api_net_weight',
+                                  'api_gross_weight']:
                     try:
                         values[odoo_field] = float(api_value) if api_value else 0.0
                     except (ValueError, TypeError):
                         values[odoo_field] = 0.0
-                        
+
                 elif odoo_field in ['api_date_new_price', 'api_previous_date_new_price']:
                     if api_value:
                         try:
@@ -118,10 +121,10 @@ class ProductTemplate(models.Model):
                             values[odoo_field] = False
                     else:
                         values[odoo_field] = False
-                        
+
                 elif odoo_field == 'api_blocked':
                     values[odoo_field] = bool(api_value) if api_value else False
-                    
+
                 else:
                     values[odoo_field] = str(api_value) if api_value else ''
 
@@ -130,21 +133,24 @@ class ProductTemplate(models.Model):
             'api_sync_status': 'success',
             'api_sync_message': _('Successfully updated from API')
         })
-        
+
         # Optionnel: mettre à jour aussi certains champs standard d'Odoo
         if 'api_description' in values and values['api_description']:
             values['name'] = values['api_description']
-            
+
         if 'api_net_weight' in values and values['api_net_weight']:
             values['weight'] = values['api_net_weight']
         if api_data.get('F_80004'):
-            values['api_dealer_price'] = float(api_data.get('F_80004').replace(',', '.')) if api_data.get('F_80004') else 0.0
+            values['api_dealer_price'] = float(api_data.get('F_80004').replace(',', '.')) if api_data.get(
+                'F_80004') else 0.0
         if api_data.get('F_80008'):
-            values['api_previous_dealer_price']  = float(api_data.get('F_80008').replace(',', '.')) if api_data.get('F_80008') else 0.0
+            values['api_previous_dealer_price'] = float(api_data.get('F_80008').replace(',', '.')) if api_data.get(
+                'F_80008') else 0.0
         if 'api_dealer_price' in values and values['api_dealer_price']:
             values['list_price'] = values['api_dealer_price']
         # Ajouter la catégorie "100 % Light" pour les produits synchronisés depuis l'API
-        category_100p_light = self.env.ref('product_elastic_search_update.product_category_100p_light', raise_if_not_found=False)
+        category_100p_light = self.env.ref('product_elastic_search_update.product_category_100p_light',
+                                           raise_if_not_found=False)
         if category_100p_light:
             values['categ_id'] = category_100p_light.id
 
@@ -155,7 +161,7 @@ class ProductTemplate(models.Model):
             try:
                 article_number = record.x_supplier_ref or record.hundred_p_article_reference or record.api_item_no
                 record.write({'x_supplier_ref': article_number})
-                
+
                 if not article_number:
                     raise UserError(_("No barcode or item number found for product '%s'") % record.name)
 
@@ -164,13 +170,21 @@ class ProductTemplate(models.Model):
                 values = record._update_from_api_data(api_data)
                 record.write(values)
                 hundredp_vendor = self.env['res.partner'].search([("name", "ilike", "100% LIGHT BVBA")], limit=1)
+
                 if hundredp_vendor:
-                    self.env['product.supplierinfo'].create({
-                        "partner_id": hundredp_vendor.id,
-                        "product_tmpl_id": record.id,
-                        "price": values['api_dealer_price'],
-                    })
-                
+                    existing_supplier_info = self.env['product.supplierinfo'].search(
+                        [("partner_id", "=", hundredp_vendor.id), ("product_tmpl_id", "=", record.id)])
+                    if existing_supplier_info:
+                        existing_supplier_info.write({
+                            "price": values['api_dealer_price'],
+                        })
+                    else:
+                        self.env['product.supplierinfo'].create({
+                            "partner_id": hundredp_vendor.id,
+                            "product_tmpl_id": record.id,
+                            "price": values['api_dealer_price'],
+                        })
+
             except Exception as e:
                 _logger.error(f"Failed to update product {record.name}: {str(e)}")
                 record.write({
@@ -183,10 +197,10 @@ class ProductTemplate(models.Model):
     @api.model
     def cron_update_products_from_api(self):
         products = self.search([('barcode', '!=', False)])
-        
+
         success_count = 0
         error_count = 0
-        
+
         for product in products:
             try:
                 product.action_update_from_api_100p()
@@ -194,7 +208,7 @@ class ProductTemplate(models.Model):
             except Exception as e:
                 error_count += 1
                 _logger.error(f"Cron update failed for product {product.name}: {str(e)}")
-        
+
         _logger.info(f"API sync completed: {success_count} success, {error_count} errors")
-        
+
         return True

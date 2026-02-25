@@ -22,7 +22,7 @@
                 <page string="API 100p Information" name="api_100p_info">
                     <group>
                         <field name="hundred_p_article_reference"/>
-                        <field name="x_supplier_ref" invisible="1"/>
+                        <field name="x_supplier_ref" invisible="0"/>
                     </group>
                     <group>
                         <group string="Article Information">
