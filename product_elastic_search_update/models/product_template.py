@@ -177,12 +177,16 @@ class ProductTemplate(models.Model):
                     if existing_supplier_info:
                         existing_supplier_info.write({
                             "price": values['api_dealer_price'],
+                            "product_code": record.hundred_p_article_reference,
+                            "product_name": record.name,
                         })
                     else:
                         self.env['product.supplierinfo'].create({
                             "partner_id": hundredp_vendor.id,
                             "product_tmpl_id": record.id,
                             "price": values['api_dealer_price'],
+                            "product_code": record.hundred_p_article_reference,
+                            "product_name": record.name,
                         })
 
             except Exception as e:
